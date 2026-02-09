@@ -16,7 +16,8 @@ def fetch_tweets(*, cfg: XApiConfig, tweet_ids: list[str]) -> dict:
     url = cfg.base_url.rstrip("/") + "/tweets"
     params = {
         "ids": ",".join(tweet_ids),
-        "tweet.fields": "created_at,lang,author_id,public_metrics",
+        # `text` is typically present by default, but include it explicitly.
+        "tweet.fields": "text,created_at,lang,author_id,public_metrics",
         "expansions": "author_id",
         "user.fields": "username,name,verified",
     }
@@ -28,5 +29,7 @@ def fetch_tweets(*, cfg: XApiConfig, tweet_ids: list[str]) -> dict:
     with httpx.Client(timeout=30.0, follow_redirects=True, headers=headers) as client:
         resp = client.get(url, params=params)
     if resp.status_code >= 400:
-        raise XApiError(f"X API request failed status={resp.status_code} body={resp.text[:300]!r}")
+        raise XApiError(
+            f"X API request failed status={resp.status_code} url={url!r} body={resp.text[:300]!r}"
+        )
     return resp.json()

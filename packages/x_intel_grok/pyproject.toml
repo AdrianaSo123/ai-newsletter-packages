@@ -27,6 +27,9 @@ build-backend = "poetry.core.masonry.api"
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["tests"]
+markers = [
+	"integration: live network tests; opt-in only",
+]
 
 [tool.ruff]
 line-length = 100
