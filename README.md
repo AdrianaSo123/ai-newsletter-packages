@@ -49,7 +49,8 @@ This repo is a proof-of-concept Python monorepo that extracts, normalizes, and p
 
 **Summary (2–4 bullets)**
 - Extractable: organizations/companies, people, funding rounds, acquisitions, investors + rich relationships (“cards”) via entity lookup.
-- Free access: no public free tier; API access requires an API key and is tied to a plan/license (Basic is limited; full API requires Enterprise/Applications license).
+- Official API access: requires an API key and is tied to a plan/license (Basic is limited; full API requires Enterprise/Applications license).
+- Public web access (no key): organization pages may be blocked (often `403`) and are not a stable “free API”; if you do any analysis without a key, prefer local HTML snapshots and explicit “unavailable” behavior.
 - Access method: official REST API at `https://api.crunchbase.com/v4/data/` using `user_key` or `X-cb-user-key`, subject to licensing/attribution terms.
 - Limits: 200 calls/min; Search API default 50 results, `limit` up to 1000 with keyset pagination (`after_id`/`before_id`).
 
@@ -125,8 +126,13 @@ This repo is a proof-of-concept Python monorepo that extracts, normalizes, and p
 
 ```bash
 python3 -m pip install -e packages/techcrunch_extractor
-python3 -m pip install -e packages/crunchbase_extractor
 python3 -m pip install -e packages/reddit_extractor
+
+# Crunchbase (choose one):
+# - No API key (public web only; often blocked):
+python3 -m pip install -e packages/crunchbase_intel
+# - Paid API key required:
+python3 -m pip install -e packages/crunchbase_extractor
 ```
 
 ### TechCrunch (RSS) example
@@ -146,6 +152,24 @@ reddit-extractor extract --subreddit startups --query "seed round" --limit 25 --
 ```
 
 ### Crunchbase example
+
+#### Option A: No API key (public web / snapshots) — `crunchbase-intel`
+
+Live organization URLs are frequently blocked (e.g. `403`). For correctness-first work without escalating scraping, prefer local HTML snapshots.
+
+Parse a saved HTML file:
+
+```bash
+crunchbase-intel org --html-file packages/crunchbase_intel/tests/fixtures/user/<org>.html
+```
+
+Attempt a live fetch (expect structured failures if blocked):
+
+```bash
+crunchbase-intel org --url "https://www.crunchbase.com/organization/crunchbase"
+```
+
+#### Option B: Paid API access — `crunchbase-extractor`
 
 ```bash
 export CRUNCHBASE_USER_KEY="..."

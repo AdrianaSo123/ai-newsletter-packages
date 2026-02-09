@@ -26,11 +26,20 @@ def fetch_rss_items(
     limit: int = 25,
 ) -> list[TechCrunchRssItem]:
     xml_text = client.get_text(rss_url)
-    root = ET.fromstring(xml_text)
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError as exc:
+        snippet = (xml_text or "").strip().replace("\n", " ")[:200]
+        raise RuntimeError(
+            f"Failed to parse RSS XML from {rss_url}. Response may not be RSS. "
+            f"Details: {exc}. First chars: {snippet!r}"
+        ) from exc
 
     channel = root.find("channel")
     if channel is None:
-        return []
+        raise RuntimeError(
+            f"RSS channel element not found for {rss_url}. Response may not be an RSS feed."
+        )
 
     items: list[TechCrunchRssItem] = []
     for item_el in channel.findall("item"):

@@ -3,11 +3,12 @@ from __future__ import annotations
 import httpx
 
 
+DEFAULT_USER_AGENT = "techcrunch-extractor/0.1.0"
+
+
 class TechCrunchClient:
     def __init__(self, *, timeout_s: float = 30.0, user_agent: str | None = None) -> None:
-        headers = {}
-        if user_agent:
-            headers["User-Agent"] = user_agent
+        headers = {"User-Agent": (user_agent or DEFAULT_USER_AGENT)}
         self._client = httpx.Client(timeout=timeout_s, headers=headers)
 
     def get_text(self, url: str, *, params: dict[str, str] | None = None) -> str:
