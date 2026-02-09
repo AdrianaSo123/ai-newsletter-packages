@@ -29,5 +29,8 @@ build/
 # Project-generated outputs
 techcrunch_intel/tmp/
 
+# Repo scratch space
+tmp/
+
 # User-provided Crunchbase snapshots (keep out of repo by default)
 packages/crunchbase_intel/tests/fixtures/user/
