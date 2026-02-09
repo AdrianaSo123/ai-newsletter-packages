@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "techcrunch-intel"
+version = "0.1.0"
+description = "Educational TechCrunch RSS ingestion and lightweight extraction of AI-related startup investment signals."
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [{ include = "techcrunch_intel" }]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<4.0"
+feedparser = "^6.0.11"
+beautifulsoup4 = "^4.13.0"
+httpx = "^0.28.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+
+[build-system]
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"

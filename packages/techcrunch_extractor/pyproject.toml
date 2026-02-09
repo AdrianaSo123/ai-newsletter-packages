@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "techcrunch-extractor"
+version = "0.1.0"
+description = "TechCrunch RSS extractor and normalizer for investment intelligence (PoC)."
+requires-python = ">=3.10"
+dependencies = [
+  "pydantic>=2.6",
+  "typer>=0.12",
+  "httpx>=0.26",
+]
+
+[project.scripts]
+techcrunch-extractor = "techcrunch_extractor.cli:app"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
