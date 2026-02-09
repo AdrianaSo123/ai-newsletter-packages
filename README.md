@@ -125,20 +125,22 @@ This repo is a proof-of-concept Python monorepo that extracts, normalizes, and p
 ### Install
 
 ```bash
-python3 -m pip install -e packages/techcrunch_extractor
-python3 -m pip install -e packages/reddit_extractor
+# Each package is installed and tested in isolation via Poetry.
+
+cd packages/techcrunch_extractor && python3 -m poetry install
+cd ../reddit_extractor && python3 -m poetry install
 
 # Crunchbase (choose one):
-# - No API key (public web only; often blocked):
-python3 -m pip install -e packages/crunchbase_intel
-# - Paid API key required:
-python3 -m pip install -e packages/crunchbase_extractor
+cd ../crunchbase_intel && python3 -m poetry install
+# or (paid API key required):
+cd ../crunchbase_extractor && python3 -m poetry install
 ```
 
 ### TechCrunch (RSS) example
 
 ```bash
-techcrunch-extractor extract --rss-url https://techcrunch.com/feed/ --limit 25 --out tc.jsonl
+cd packages/techcrunch_extractor
+python3 -m poetry run techcrunch-extractor extract --rss-url https://techcrunch.com/feed/ --limit 25 --out tc.jsonl
 ```
 
 ### Reddit example
@@ -148,7 +150,8 @@ Create a Reddit app and obtain an access token (or set up refresh-token flow), t
 ```bash
 export REDDIT_ACCESS_TOKEN="..."
 export REDDIT_USER_AGENT="macos:newsletter_packages:poc (by /u/YOUR_USERNAME)"
-reddit-extractor extract --subreddit startups --query "seed round" --limit 25 --out reddit.jsonl
+cd packages/reddit_extractor
+python3 -m poetry run reddit-extractor extract --subreddit startups --query "seed round" --limit 25 --out reddit.jsonl
 ```
 
 ### Crunchbase example
@@ -160,20 +163,23 @@ Live organization URLs are frequently blocked (e.g. `403`). For correctness-firs
 Parse a saved HTML file:
 
 ```bash
-crunchbase-intel org --html-file packages/crunchbase_intel/tests/fixtures/user/<org>.html
+cd packages/crunchbase_intel
+python3 -m poetry run crunchbase-intel org --html-file tests/fixtures/user/<org>.html
 ```
 
 Attempt a live fetch (expect structured failures if blocked):
 
 ```bash
-crunchbase-intel org --url "https://www.crunchbase.com/organization/crunchbase"
+cd packages/crunchbase_intel
+python3 -m poetry run crunchbase-intel org --url "https://www.crunchbase.com/organization/crunchbase"
 ```
 
 #### Option B: Paid API access — `crunchbase-extractor`
 
 ```bash
 export CRUNCHBASE_USER_KEY="..."
-crunchbase-extractor autocomplete --query "airbnb" --collection-ids organization.companies --limit 5
-crunchbase-extractor organization --permalink tesla-motors --out tesla.jsonl
-crunchbase-extractor funding-rounds --announced-on-gte 2025-01-01 --money-raised-gte 10000000 --currency usd --limit 100 --out rounds.jsonl
+cd packages/crunchbase_extractor
+python3 -m poetry run crunchbase-extractor autocomplete --query "airbnb" --collection-ids organization.companies --limit 5
+python3 -m poetry run crunchbase-extractor organization --permalink tesla-motors --out tesla.jsonl
+python3 -m poetry run crunchbase-extractor funding-rounds --announced-on-gte 2025-01-01 --money-raised-gte 10000000 --currency usd --limit 100 --out rounds.jsonl
 ```

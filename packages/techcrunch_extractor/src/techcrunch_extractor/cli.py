@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+
 import typer
 
 from .client import TechCrunchClient
@@ -10,6 +11,20 @@ from .normalizer import normalize_rss_item
 
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
+
+
+def _emit_error(*, kind: str, message: str, code: int, command: str, details: dict | None = None) -> None:
+    payload = {
+        "ok": False,
+        "error": {
+            "kind": kind,
+            "message": message,
+            "command": command,
+            "details": details or {},
+        },
+    }
+    typer.echo(json.dumps(payload, ensure_ascii=False), err=True)
+    raise typer.Exit(code=code)
 
 
 @app.callback()
@@ -31,8 +46,7 @@ def extract(
             raw_items = fetch_rss_items(client, rss_url=rss_url, limit=limit)
         normalized = [normalize_rss_item(i) for i in raw_items]
     except Exception as exc:
-        typer.echo(f"TechCrunch extraction failed: {exc}", err=True)
-        raise typer.Exit(code=1)
+        _emit_error(kind="extract_failed", message=str(exc), code=1, command="extract")
 
     if not normalized:
         typer.echo("Warning: fetched 0 RSS items.", err=True)
@@ -58,8 +72,7 @@ def fetch(
         with TechCrunchClient(user_agent=user_agent) as client:
             raw_items = fetch_rss_items(client, rss_url=rss_url, limit=limit)
     except Exception as exc:
-        typer.echo(f"TechCrunch fetch failed: {exc}", err=True)
-        raise typer.Exit(code=1)
+        _emit_error(kind="fetch_failed", message=str(exc), code=1, command="fetch")
 
     if not raw_items:
         typer.echo("Warning: fetched 0 RSS items.", err=True)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import typer
 
@@ -12,6 +13,20 @@ from .oauth import build_authorize_url, exchange_code_for_tokens, generate_state
 
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
+
+
+def _emit_error(*, kind: str, message: str, code: int, command: str, details: dict | None = None) -> None:
+    payload = {
+        "ok": False,
+        "error": {
+            "kind": kind,
+            "message": message,
+            "command": command,
+            "details": details or {},
+        },
+    }
+    typer.echo(json.dumps(payload, ensure_ascii=False), err=True)
+    raise typer.Exit(code=code)
 
 
 @app.callback()
@@ -46,18 +61,25 @@ def auth_cmd(
     try:
         cfg = RedditAuthConfig.from_env()
     except RedditConfigError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(code=2)
+        _emit_error(kind="config_error", message=str(exc), code=2, command="auth")
 
     client_id = (client_id or cfg.client_id or "").strip() or None
     client_secret = (client_secret or cfg.client_secret or "").strip() or None
 
     if not client_id:
-        typer.echo("Missing client_id. Set REDDIT_CLIENT_ID in .venv/.env or pass --client-id.", err=True)
-        raise typer.Exit(code=2)
+        _emit_error(
+            kind="config_error",
+            message="Missing client_id. Set REDDIT_CLIENT_ID in .venv/.env or pass --client-id.",
+            code=2,
+            command="auth",
+        )
     if not client_secret:
-        typer.echo("Missing client_secret. Set REDDIT_CLIENT_SECRET in .venv/.env or pass --client-secret.", err=True)
-        raise typer.Exit(code=2)
+        _emit_error(
+            kind="config_error",
+            message="Missing client_secret. Set REDDIT_CLIENT_SECRET in .venv/.env or pass --client-secret.",
+            code=2,
+            command="auth",
+        )
 
     state_val = state or generate_state()
     scopes = [s for s in (scope or "").split() if s.strip()]
@@ -86,11 +108,12 @@ def auth_cmd(
         user_agent=cfg.user_agent,
     )
     if not token.refresh_token:
-        typer.echo(
-            "No refresh_token returned. Ensure you used duration=permanent and the redirect_uri matches your app settings.",
-            err=True,
+        _emit_error(
+            kind="auth_error",
+            message="No refresh_token returned. Ensure you used duration=permanent and the redirect_uri matches your app settings.",
+            code=1,
+            command="auth",
         )
-        raise typer.Exit(code=1)
 
     typer.echo("\nPaste these into .venv/.env (do not commit secrets):")
     typer.echo(f"REDDIT_CLIENT_ID=\"{client_id}\"")
@@ -111,22 +134,34 @@ def extract_cmd(
     try:
         config = RedditAuthConfig.from_env()
     except RedditConfigError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(code=2)
+        _emit_error(kind="config_error", message=str(exc), code=2, command="extract")
 
     if not config.has_any_token_source():
-        typer.echo(
-            "Missing Reddit credentials. Set REDDIT_ACCESS_TOKEN or "
-            "REDDIT_CLIENT_ID/REDDIT_CLIENT_SECRET/REDDIT_REFRESH_TOKEN.",
-            err=True,
+        _emit_error(
+            kind="config_error",
+            message=(
+                "Missing Reddit credentials. Set REDDIT_ACCESS_TOKEN or "
+                "REDDIT_CLIENT_ID/REDDIT_CLIENT_SECRET/REDDIT_REFRESH_TOKEN."
+            ),
+            code=2,
+            command="extract",
         )
-        raise typer.Exit(code=2)
 
-    with RedditClient(config=config) as client:
-        if query:
-            posts, rl = search_posts(client, subreddit=subreddit, query=query, limit=limit, sort=sort, time_filter=time_filter)
-        else:
-            posts, rl = fetch_new_posts(client, subreddit=subreddit, limit=limit)
+    try:
+        with RedditClient(config=config) as client:
+            if query:
+                posts, rl = search_posts(
+                    client,
+                    subreddit=subreddit,
+                    query=query,
+                    limit=limit,
+                    sort=sort,
+                    time_filter=time_filter,
+                )
+            else:
+                posts, rl = fetch_new_posts(client, subreddit=subreddit, limit=limit)
+    except Exception as exc:
+        _emit_error(kind="api_error", message=str(exc), code=1, command="extract")
 
     normalized = [normalize_post(p) for p in posts]
     emit_jsonl(normalized, out)
@@ -151,22 +186,34 @@ def fetch_cmd(
     try:
         config = RedditAuthConfig.from_env()
     except RedditConfigError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(code=2)
+        _emit_error(kind="config_error", message=str(exc), code=2, command="fetch")
 
     if not config.has_any_token_source():
-        typer.echo(
-            "Missing Reddit credentials. Set REDDIT_ACCESS_TOKEN or "
-            "REDDIT_CLIENT_ID/REDDIT_CLIENT_SECRET/REDDIT_REFRESH_TOKEN.",
-            err=True,
+        _emit_error(
+            kind="config_error",
+            message=(
+                "Missing Reddit credentials. Set REDDIT_ACCESS_TOKEN or "
+                "REDDIT_CLIENT_ID/REDDIT_CLIENT_SECRET/REDDIT_REFRESH_TOKEN."
+            ),
+            code=2,
+            command="fetch",
         )
-        raise typer.Exit(code=2)
 
-    with RedditClient(config=config) as client:
-        if query:
-            posts, rl = search_posts(client, subreddit=subreddit, query=query, limit=limit, sort=sort, time_filter=time_filter)
-        else:
-            posts, rl = fetch_new_posts(client, subreddit=subreddit, limit=limit)
+    try:
+        with RedditClient(config=config) as client:
+            if query:
+                posts, rl = search_posts(
+                    client,
+                    subreddit=subreddit,
+                    query=query,
+                    limit=limit,
+                    sort=sort,
+                    time_filter=time_filter,
+                )
+            else:
+                posts, rl = fetch_new_posts(client, subreddit=subreddit, limit=limit)
+    except Exception as exc:
+        _emit_error(kind="api_error", message=str(exc), code=1, command="fetch")
 
     emit_raw_jsonl((p.__dict__ for p in posts), out)
 

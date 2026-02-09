@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import typer
 
@@ -12,6 +13,20 @@ from .normalizer import normalize_funding_round_search_result, normalize_organiz
 
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
+
+
+def _emit_error(*, kind: str, message: str, code: int, command: str, details: dict | None = None) -> None:
+    payload = {
+        "ok": False,
+        "error": {
+            "kind": kind,
+            "message": message,
+            "command": command,
+            "details": details or {},
+        },
+    }
+    typer.echo(json.dumps(payload, ensure_ascii=False), err=True)
+    raise typer.Exit(code=code)
 
 
 @app.callback()
@@ -29,11 +44,12 @@ def autocomplete_cmd(
     try:
         config = CrunchbaseConfig.from_env()
     except CrunchbaseConfigError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(code=2)
-
-    with CrunchbaseClient(config=config) as client:
-        data = cb_autocomplete(client, query=query, collection_ids=collection_ids, limit=limit)
+        _emit_error(kind="config_error", message=str(exc), code=2, command="autocomplete")
+    try:
+        with CrunchbaseClient(config=config) as client:
+            data = cb_autocomplete(client, query=query, collection_ids=collection_ids, limit=limit)
+    except Exception as exc:
+        _emit_error(kind="api_error", message=str(exc), code=1, command="autocomplete")
     emit_json(data, out=None)
 
 
@@ -45,22 +61,23 @@ def organization_cmd(
     try:
         config = CrunchbaseConfig.from_env()
     except CrunchbaseConfigError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(code=2)
-
-    with CrunchbaseClient(config=config) as client:
-        entity = get_organization(
-            client,
-            entity_id=permalink,
-            field_ids=[
-                "identifier",
-                "short_description",
-                "website",
-                "founded_on",
-                "rank_org_company",
-            ],
-            card_ids=["raised_funding_rounds"],
-        )
+        _emit_error(kind="config_error", message=str(exc), code=2, command="organization")
+    try:
+        with CrunchbaseClient(config=config) as client:
+            entity = get_organization(
+                client,
+                entity_id=permalink,
+                field_ids=[
+                    "identifier",
+                    "short_description",
+                    "website",
+                    "founded_on",
+                    "rank_org_company",
+                ],
+                card_ids=["raised_funding_rounds"],
+            )
+    except Exception as exc:
+        _emit_error(kind="api_error", message=str(exc), code=1, command="organization")
     normalized = [normalize_organization(entity)]
     emit_jsonl(normalized, out)
 
@@ -76,17 +93,18 @@ def funding_rounds_cmd(
     try:
         config = CrunchbaseConfig.from_env()
     except CrunchbaseConfigError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(code=2)
-
-    with CrunchbaseClient(config=config) as client:
-        search_resp = search_funding_rounds(
-            client,
-            announced_on_gte=announced_on_gte,
-            money_raised_gte=money_raised_gte,
-            currency=currency,
-            limit=limit,
-        )
+        _emit_error(kind="config_error", message=str(exc), code=2, command="funding-rounds")
+    try:
+        with CrunchbaseClient(config=config) as client:
+            search_resp = search_funding_rounds(
+                client,
+                announced_on_gte=announced_on_gte,
+                money_raised_gte=money_raised_gte,
+                currency=currency,
+                limit=limit,
+            )
+    except Exception as exc:
+        _emit_error(kind="api_error", message=str(exc), code=1, command="funding-rounds")
     normalized = normalize_funding_round_search_result(search_resp)
     emit_jsonl(normalized, out)
 

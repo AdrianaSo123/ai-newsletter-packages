@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>TechCrunch</title>
+    <link>https://techcrunch.com/</link>
+    <description>Sample RSS fixture</description>
+    <item>
+      <title>Example startup raises $OPENAI</title>
+      <link>https://techcrunch.com/2026/02/01/example/</link>
+      <guid>tc-fixture-guid-1</guid>
+      <description>Short summary</description>
+      <pubDate>Mon, 02 Feb 2026 12:34:56 +0000</pubDate>
+      <category>Startups</category>
+      <category>Funding</category>
+      <dc:creator>Fixture Author</dc:creator>
+    </item>
+  </channel>
+</rss>
